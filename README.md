@@ -37,7 +37,9 @@ For example, a file name of (0.3, 0.1745, 1e-3, 10k, 2) means that the bonds wer
 # Things to do before getting started
 1. Update the fullPath variable in matlabProcessing.py so that it points to the Molecules folder correctly. The other modules import the fullPath variable from this module.
 2. Make sure that you are randomizing the correct molecule by checking the molecule name in both targetOutputBase.py and targetOutputIterate.py. Ensure that both modules have the same molecule. 
-3. 
+3. Make sure that the variation ranges for bond lengths and angles is satisfactory. This can be found on lines 64 and 65 of the errorMinSubRoutine.py module, where line 64 deals with angle variation and line 65 deals with bond length variation.
+4. Check that the tolerances are satisfactory. This is on line 86 of errorMinSubRoutine.py: ```python psol = least_squares(residualCalc,x0, ftol = 1e-3, xtol = 1e-3, gtol = 1e-3) ```Note: decreasing the tolerances (e.g. 1e-3 --> 1e-8) will greatly increase run time of the algorithm, but also improve accuracy of optimization
+5. 
 
 
 
