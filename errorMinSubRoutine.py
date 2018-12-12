@@ -97,6 +97,7 @@ def run(originalMatrix = originalMatrix):
 #    beginningAngleMatrix, beginningBondMatrix = matrixStrip(startingOutput[0]).flatten(), matrixStrip(startingOutput[1]).flatten()
 #    beginningVector = np.concatenate((beginningAngleMatrix, beginningBondMatrix), axis = None)   
 # =============================================================================
+# Only uncomment this sections if you want to generate a solution matrix with the new cartesian coordinates for each of the atoms
 
     
     mat, template = psol.x, template
@@ -123,6 +124,7 @@ def run(originalMatrix = originalMatrix):
 #    endingResidual = np.subtract(endingVector, targetVector)
 #    print(beginningResidual,'\n', endingResidual)
 # =============================================================================
+# Only uncomment this sections if you want to generate a solution matrix with the new cartesian coordinates for each of the atoms
 
 
     return [tempMatrix]
@@ -139,87 +141,3 @@ def run(originalMatrix = originalMatrix):
 
 
 
-
-
-
-
-#all that remains is to test the result to be sure this is what you want, and then to correct the output
-
-    
-    
-
-
-
-
-
-
-
-#sol = least_squares(residualCalc, flattenedWorkMat)
-
-    
-#For least squares:
-#    1. Calculate the residual vector that takes into account the bond angles and bond lengths
-#        Combine the current bond + angles (stripped) and target bond + angles (stripped) into one matrix of matrices
-#        Can you subtract the two using np.subtract?
-#    2. Pass that vector into the least_squares function
-#    3. The initial guess for the least_squares function has to be a vector of floats:
-#        To do to this, you can use the functions matrix.flatten() to convert to a single vector
-#        You can np.reshape() within the actual function to transform the matrix into a digestable input for your algorithm, it's just to get past the problems with least_squares
-    
-
-    
-    
-
-
-
-
-
-
-
-
-    
-    
-
-
-
-
-
-
-
-
-
-
-    
-
-
-
-
-
-    
-    
-    
-
-
-
-
-
-
-
-
-
-
-
-
-
-## =============================================================================
-## MASTER PRINT STATEMENTS DO NOT DELETE
-#print('This is the final Bond Matrix with all EXISTING bonds: \n',BondMatrixFinal)
-#print('This is the beginning cartesian coordinates of all the atoms (in terms of the bohr radius): \n',workingMatrix)
-#print('This is the final Angle matrix with all existing angles: \n',AngleMatrix)    
-#print('This is the randomized Angle matrix: \n',AngleMatrixRandomized)
-#print('This is the randomized Bond matrix: \n',BondMatrixRandomized)
-## =============================================================================
-#
-#
-##'C2H6O.xlsx'
-##'TabulationsofCutoffBondLengths.xlsx'
