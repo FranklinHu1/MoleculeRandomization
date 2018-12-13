@@ -31,7 +31,7 @@ For example, a file name of (0.3, 0.1745, 1e-3, 10k, 2) means that the bonds wer
 3. Make sure that the variation ranges for bond lengths and angles is satisfactory. This can be found on lines 64 and 65 of the errorMinSubRoutine.py module, where line 64 deals with angle variation and line 65 deals with bond length variation.
 4. Check that the tolerances are satisfactory. This is on line 86 of errorMinSubRoutine.py:                                       ```psol = least_squares(residualCalc,x0, ftol = 1e-3, xtol = 1e-3, gtol = 1e-3) ```Note: decreasing the tolerances (e.g. 1e-3 --> 1e-8) will greatly increase run time of the algorithm, but also improve accuracy of optimization
 5. You can set the number of algorithm runs you want in the histoGen.py module, on line 32. The input parameter for the function generateHistogram is the number of times.
-6. You can also adjust which inter-atom distances you want. This is on line 9 of histoGen.py, governed by the variable interestedString. The string 'CC' refers to the distance between carbon atoms only. Thus, 'NC' would refer to the distance between nitrogen and carbon atoms.
+6. You can also adjust which inter-atom distances you want. This is on line 9 of histoGen.py, governed by the variable interestedString. The string 'CC' refers to the distance between carbon atoms only. Thus, 'NC' would refer to the distance between nitrogen and carbon atoms. Be sure to also enter the atom pair in reverse order on line 10 for the variable reverseString. 
 7. The number of bins for the histogram is set under the function generateHistogram in the histoGen.py module, on line 28. The title for the histogram must also be manually adjusted on lines 29-31 under that function.
 
 
