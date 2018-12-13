@@ -6,7 +6,7 @@ Code for randomizing and optimizing molecule geometries based on qm7 dataset, us
 ## qm7.mat
 The raw dataset containing the atomic numbers and cartesian coordinates of each atom in each of 7165 molecules.
 ## matlabProcessing.py
-Pulls molecule data from the qm7.mat dataset, giving the cartesian coordinates (x,y,z) of each atom in the molecule in the form of an excel file. Doing so requires knowing the row index of the molecule in the qm7 file. This moedule also has has the fullPath variable, which directs where molecule cartesian data excel files are saved and pulled from.
+Pulls molecule data from the qm7.mat dataset, giving the cartesian coordinates (x,y,z) of each atom in the molecule in the form of an excel file. Doing so requires knowing the row index of the molecule in the qm7 file. This module also has the fullPath variable, which directs where molecule cartesian data excel files are saved and pulled from.
 ## histoGen.py
 Generates a histogram of all the inter-atomic distances (e.g. all C-C distances) from a large number of randomizations and optimizations of the molecular geometry. The number of times this data is generated can be set by the user.
 ## targetOutputBase.py
@@ -38,13 +38,3 @@ For example, a file name of (0.3, 0.1745, 1e-3, 10k, 2) means that the bonds wer
 # Important things to keep in mind
 1. The block comment sections in the errorMinSubRoutine.py module is used for generating a solution matrix, which is composed of the new cartesian coordinates for each atom in the molecule. Uncomment these if you want a solution for an optimization, and add the variable 'solution' to the return statement of the run() function.
 2. The console will print out the number of trials completed, so you can track the run progress.
-
-
-
-
-
-
-
-
-
-
