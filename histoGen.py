@@ -7,6 +7,7 @@ import numpy as np
 def generateData(times):
     x = []
     interestedString = 'CC'
+    reverseString = 'CC' #The atoms in reverse order
     iterations = 0
     for i in range(times):
         tempMatrix = run()[0]
@@ -15,7 +16,7 @@ def generateData(times):
             for c in tempMatrix[row,0]:
                 if c.isalpha():
                     checkString += c
-            if checkString == interestedString:
+            if checkString == interestedString or checkString == reverseString:
                 x.append(tempMatrix[row,1])
         iterations += 1
         print(iterations)
