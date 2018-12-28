@@ -3,7 +3,7 @@ import numpy as np
 import random 
 import xlrd
 from copy import deepcopy
-from matlabProcessing import fullPath
+from matlabProcessing import fullPath, moleculeName
 
 # =============================================================================
 # Helper Functions / variables
@@ -35,7 +35,7 @@ def randomizationOfMatrix(Entry, lowerbound, upperbound):
     return MatrixCopy
 # =============================================================================
 
-molecule, cutoff = fullPath + 'C6N1H11.xls', fullPath + 'TabulationsofCutoffBondLengths2.xlsx' #Input a new molecule each time
+molecule, cutoff = fullPath + moleculeName + '.xls', fullPath + 'TabulationsofCutoffBondLengths2.xlsx' 
 mat = CreateExcelMat(molecule)
 BondLengthCutoffMatrix = CreateExcelMat(cutoff)
 originalMatrix = MatrixConversion(mat)
@@ -52,7 +52,7 @@ def getAngleAndBondsIterate(matrix, template):
     
 #    funcMatrix = deepcopy(matrix)
     funcMatrix = np.array(matrix, dtype = object)
-    funcMatrix = funcMatrix.reshape(4 , 18) #Take care to check this line every time you are testing, so that it's corresponding to the correct molecule
+    funcMatrix = funcMatrix.reshape(4 , len(originalMatrix[0])) 
     for i in range(len(funcMatrix[0])):
         for key in stringToNumDict:
             if stringToNumDict[key] == float(i):
@@ -88,7 +88,7 @@ def getAngleAndBondsIterate(matrix, template):
                 BondLengthMatrix[place,1] = BondLength*BohrRadius
                 place += 1
 #    
-    BondIndexList = template #THIS IS THE LINE OF ISSUE, FIGURE OUT HOW TO MAKE THIS WORK WITH TEMPLATE!!!!
+    BondIndexList = template 
 
     
     UniqueAtomSet = set()
