@@ -7,6 +7,8 @@ import xlwt
 
 fullPath = 'C:\\Users\Frank\Box Sync\College\MoleculeRandomization\Molecules\\'
 #You will want to change the path name for your specific directories
+moleculeName = 'C6N1H11'
+#Change this string for the desired molecule
 
 def readMatLabData(dataset, moleculeRow):   
     mat_contents = sio.loadmat(dataset)
@@ -123,26 +125,4 @@ def mainFunc(dataSet, moleculeRow):
     generateExcelFile(moleculeMat, fileNames)
     return None
 
-mainFunc('qm7.mat',1540)
-    
-
-
-
-
-
-
-
-
-
-
-        
-        
-        
-        
-
-        
-
-
-
-
-
+mainFunc('qm7.mat',1)
