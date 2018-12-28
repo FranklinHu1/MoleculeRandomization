@@ -5,7 +5,7 @@ import numpy as np
 import random 
 import xlrd
 from copy import deepcopy
-from matlabProcessing import fullPath
+from matlabProcessing import fullPath, moleculeName
 
 
 # =============================================================================
@@ -37,7 +37,7 @@ def randomizationOfMatrix(Entry, lowerbound, upperbound):
         MatrixCopy[row, 1] += random.uniform(lowerbound, upperbound)
     return MatrixCopy
 # =============================================================================
-molecule, cutoff = fullPath + 'C6N1H11.xls', fullPath + 'TabulationsofCutoffBondLengths2.xlsx' #Input a new molecule each time you want to use a different one
+molecule, cutoff = fullPath + moleculeName + '.xls', fullPath + 'TabulationsofCutoffBondLengths2.xlsx' 
 mat = CreateExcelMat(molecule)
 originalMatrix = MatrixConversion(mat)
 BondLengthCutoffMatrix = CreateExcelMat(cutoff)
@@ -58,7 +58,7 @@ def getAngleAndBondsBase(matrix, cutoffMat = WorkingBondLengthCutoffMatrix):
     
     funcMatrix = deepcopy(matrix)
     funcMatrix = np.array(matrix, dtype = object)
-    funcMatrix = funcMatrix.reshape(4 , 18) #Take care to check this line every time you are testing, so that it's corresponding to the correct molecule
+    funcMatrix = funcMatrix.reshape(4 , len(originalMatrix[0])) 
     for i in range(len(funcMatrix[0])):
         for key in stringToNumDict:
             if stringToNumDict[key] == float(i):
@@ -107,7 +107,7 @@ def getAngleAndBondsBase(matrix, cutoffMat = WorkingBondLengthCutoffMatrix):
                 BondLength = BondLengthDistance(X1,Y1,Z1,X2,Y2,Z2)
                 BondLengthMatrix[place,1] = BondLength*BohrRadius
                 place += 1
-    
+#    print(BondLengthMatrix)
     
     NumberBadRows = 0 #THIS IS THE BLOCK THAT SORTS THROUGH BOND LENGTHS
     BadRows = []
