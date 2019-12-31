@@ -3,11 +3,16 @@ from errorMinSubRoutine import run
 import matplotlib.pyplot as plt
 import numpy as np
 
+'''
+Module used to show variation in interatomic distances. Used during the starting
+stages of the project to show that there was a uniform sampling of bond lengths.
+No longer necessary for the project to proceed.
+'''
 
 def generateData(times):
     x = []
     interestedString = 'CC'
-    reverseString = 'CC' #The atoms in reverse order
+    reverseString = 'CC'
     iterations = 0
     for i in range(times):
         tempMatrix = run()[0]
@@ -30,7 +35,7 @@ def generateHistogram(times):
     plt.ylabel('Frequency')
     plt.title('Histogram of C-C distances, data generated ' + str(times) + ' times')
     
-generateHistogram(10) #The molecule right now is C6N1H11, angle is +- 10 degrees
+generateHistogram(10000) #The molecule right now is C6N1H11, angle is +- 10 degrees
  
 #x = [1,3,4,6,7,3,3,2,4,6,7,5,3,4,5,1,3,4,6,7,8,9,5,3,2,4,5,6,1,3,4,4]
 #plt.hist(x, [1,2,3,4,5,6,7,8])    

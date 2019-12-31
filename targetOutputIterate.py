@@ -1,172 +1,130 @@
+# -*- coding: utf-8 -*-
+"""
+Created on Mon Feb 11 10:35:47 2019
+Function called within the residual calc function for error minimization
+@author: Frank
+"""
+'''
+This is a modified version of targetOutputBase.py, and it's used in the iterative
+minimization of errors. It still takes in the parameters (the cartesians of the 
+atoms in the molecule) and returns the bond lengths and bond angles from 
+calculations performed on those cartesians.
+'''
+
 import math
 import numpy as np
-import random 
-import xlrd
-from copy import deepcopy
-from matlabProcessing import fullPath, moleculeName
+import re
 
 # =============================================================================
 # Helper Functions / variables
 
-def BondLengthDistance(x1,y1,z1,x2,y2,z2):
+def bondLengthDistance(x1,y1,z1,x2,y2,z2):
     return (((x2 - x1)**2) + ((y2-y1)**2) + ((z2-z1)**2))**0.5
 
 BohrRadius = 0.529177 #Given in angstroms
 
-def AngleCalculationbyCosineLaw(a,b,c):
+def angleCalculationbyCosineLaw(a,b,c):
     return (((a**2) + (b**2)) - (c**2)) / (2*a*b)
 
-def MatrixConversion(excelmat):
-    result = np.empty((excelmat.nrows, excelmat.ncols),dtype = object)
-    for row in range(excelmat.nrows):
-        for col in range(excelmat.ncols):
-            result[row,col] = excelmat.cell_value(row,col)
-    return result
-
-def CreateExcelMat(path):
-    temporaryMat = xlrd.open_workbook(path)
-    result = temporaryMat.sheet_by_index(0)
-    return result
-
-def randomizationOfMatrix(Entry, lowerbound, upperbound):
-    MatrixCopy = deepcopy(Entry)
-    for row in range(len(MatrixCopy)):
-        MatrixCopy[row, 1] += random.uniform(lowerbound, upperbound)
-    return MatrixCopy
 # =============================================================================
 
-molecule, cutoff = fullPath + moleculeName + '.xls', fullPath + 'TabulationsofCutoffBondLengths2.xlsx' 
-mat = CreateExcelMat(molecule)
-BondLengthCutoffMatrix = CreateExcelMat(cutoff)
-originalMatrix = MatrixConversion(mat)
-WorkingBondLengthCutoffMatrix = MatrixConversion(BondLengthCutoffMatrix)
 
-stringToNumDict = dict()
-for i in range(len(originalMatrix[0])):
-    stringToNumDict[originalMatrix[0,i]] = float(i)
-
-#flattenedWorkMat = np.array(([0.0,1.0,2.0,3.0,4.0,5.0,6.0,7.0,1.8974,4.7545,1.1761,1.1605,1.1761,5.4758,5.4913,5.4757,-0.0055747,-0.013266,1.9321,-0.98217,-0.96077,0.94883,0.95637,-1.951,-0.012094,0.0011149,-0.0030992,1.6547,-1.6981,1.683,-1.6697,0.00011338]),dtype = object)
-#template = ['C1C2', 'C1H1', 'C1H2', 'C1H3', 'C2H4', 'C2H5', 'C2H6']
-
-def getAngleAndBondsIterate(matrix, template):
-    
-#    funcMatrix = deepcopy(matrix)
-    funcMatrix = np.array(matrix, dtype = object)
-    funcMatrix = funcMatrix.reshape(4 , len(originalMatrix[0])) 
-    for i in range(len(funcMatrix[0])):
-        for key in stringToNumDict:
-            if stringToNumDict[key] == float(i):
-                funcMatrix[0,i] = key
-    
-    workingMatrix = funcMatrix #Important! if you change anything else, look at this line first
-    workingMatrixDimensions = workingMatrix.shape
-    HeadingList = workingMatrix[0,:]
-    AtomString = ''
-    for i in range (len(HeadingList)):
-        AtomString += HeadingList[i]
-        
-    NumberHydrogens = AtomString.count('H') #Gives the # of Hydorgens in the molecule, which necessarily cannot form bonds with each other
-    NumberNonHydrogens = workingMatrixDimensions[1] - NumberHydrogens #workingMatrixDimensions[1] is equivalent to the total number of atoms
-    BondLengthMatrixRows = 0
-    
-    for i in range (workingMatrixDimensions[1]-1, (workingMatrixDimensions[1]-NumberNonHydrogens)-1, -1):
-        BondLengthMatrixRows += i
-    BondLengthMatrix = np.empty((BondLengthMatrixRows, 2), dtype = object)
-    
+def addInBondValuesBasedOnTemplate(bondLengthMatrix, template, funcMatrix): #Takes in the template and creates the final bond matrix
     place = 0
-    for i in range(workingMatrixDimensions[1]):
-        if 'H' in workingMatrix[0,i]:
+    for bonds in template:
+        tokenList = re.split('(\d+)', bonds)
+        atom1 = tokenList[0] + tokenList[1]
+        atom2 = tokenList[2] + tokenList[3]
+        usefulCols = []
+        for i in range(len(funcMatrix[0])):
+            if atom1 == funcMatrix[0, i] or atom2 == funcMatrix[0, i]:
+                usefulCols.append(funcMatrix[1:, i].tolist())
+        X1, X2 = usefulCols[0][0], usefulCols[1][0]
+        Y1, Y2 = usefulCols[0][1], usefulCols[1][1]
+        Z1, Z2 = usefulCols[0][2], usefulCols[1][2]
+        bondLengthNotAngstrom = bondLengthDistance(X1, Y1, Z1, X2, Y2, Z2)
+        bondLength = bondLengthNotAngstrom 
+        bondLengthMatrix[place, 0] = bonds
+        bondLengthMatrix[place, 1] = bondLength
+        place += 1
+
+def addInBondLengthsRaw(bondLengthMatrix, dimensions, funcMatrix): #Destructively adds things into the bond length function
+    place = 0
+    for i in range(dimensions[1]):
+        if 'H' in funcMatrix[0,i]:
             pass
         else:
-            for j in range(i+1, workingMatrixDimensions[1]):
-                index = workingMatrix[0,i] + workingMatrix[0,j]
-                BondLengthMatrix[place,0] = index
-                X1,X2 = workingMatrix[1,i], workingMatrix[1,j]
-                Y1,Y2 = workingMatrix[2,i], workingMatrix[2,j]
-                Z1,Z2 = workingMatrix[3,i], workingMatrix[3,j] 
-                BondLength = BondLengthDistance(X1,Y1,Z1,X2,Y2,Z2)
-                BondLengthMatrix[place,1] = BondLength*BohrRadius
+            for j in range(i + 1, dimensions[1]):
+                index = funcMatrix[0,i] + funcMatrix[0,j]
+                bondLengthMatrix[place,0] = index
+                X1,X2 = funcMatrix[1,i], funcMatrix[1,j]
+                Y1,Y2 = funcMatrix[2,i], funcMatrix[2,j]
+                Z1,Z2 = funcMatrix[3,i], funcMatrix[3,j] 
+                BondLength = bondLengthDistance(X1,Y1,Z1,X2,Y2,Z2)
+                bondLengthMatrix[place,1] = BondLength 
                 place += 1
-#    
-    BondIndexList = template 
+    pass
 
-    
-    UniqueAtomSet = set()
-    AllAtomlist = []
-    for i in range(len(BondIndexList)):
-        totalcharacterlist = list(BondIndexList[i])
-        symbolIndex = []
-        for index in range(len(totalcharacterlist)):
-            if totalcharacterlist[index].isalpha():
-                symbolIndex.append(index)
-        Atom1, Atom2 = '',''
-        for j in range(symbolIndex[1]):
-            Atom1 += totalcharacterlist[j]
-        for h in range(symbolIndex[1], len(totalcharacterlist)):
-            Atom2 += totalcharacterlist[h]
-        UniqueAtomSet.add(Atom1)
-        UniqueAtomSet.add(Atom2)
-        AllAtomlist.append(Atom1)
-        AllAtomlist.append(Atom2)
-        
-    MultiBondedAtoms = [] #These are the atoms that form multiple bonds and can be used as the center atom for calculating bond angles
-    for s in UniqueAtomSet:
-        count = AllAtomlist.count(s)
-        if count > 1:
-            MultiBondedAtoms.append(s)
-    
-    #Creating the triples of bonded atoms!
-    #print(BondIndexList)
-    TripleList = [] #TripleList is a list, so you have to use [row][col] rather than the nice [row,col] you get with a np array
-    for atom in MultiBondedAtoms:
-        Indlist = []
-        for index in range(len(BondIndexList)):
-            if atom in BondIndexList[index]:
-                Indlist.append(index)
-        for i in range(len(Indlist)):
-            for j in range(i+1, len(Indlist)):
-                Atmstr1 = BondIndexList[Indlist[i]].split(atom)
-                Atmstr2 = BondIndexList[Indlist[j]].split(atom)
-                Temp1, Temp2 = None, None
-                for IND in range(len(Atmstr1)):
-                    if Atmstr1[IND] != '':
-                        Temp1 = Atmstr1[IND]
-                    if Atmstr2[IND] != '':
-                        Temp2 = Atmstr2[IND]
-                triplet = [Temp1, atom, Temp2]
-                TripleList.append(triplet)
-    #Now that you have the matrix with the bond triples, find a way to calculate the actual angle!
-    AngleMatrix = np.empty((len(TripleList),2),dtype = object)
-    for i in range(len(TripleList)):
+def createEmptyBondMatrix(matrix): #Creates the empty bond matrix of specified number of rows
+    workingMatrix = matrix
+    workingMatrixDimensions = workingMatrix.shape
+    headingList = workingMatrix[0,:].tolist()
+    atomString = ''
+    for i in range(len(headingList)):
+        atomString += headingList[i]
+    numberHydrogens = atomString.count('H') #Gives the # of Hydorgens in the molecule, which necessarily cannot form bonds with each other
+    numberNonHydrogens = workingMatrixDimensions[1] - numberHydrogens #workingMatrixDimensions[1] is equivalent to the total number of atoms
+    bondLengthMatrixRows = 0
+    #You start with the maximum number of bonds (the first atom can bond to all atoms after it) and work down by one each time. For example,
+    #   in ethane, you have C2H6. The first carbon can form 7, and the second carbon can form 6 (we already counted C1C2!), and we continue
+    #   adding by one less until we finish with the number of non-hydrogen atoms
+    for i in range(workingMatrixDimensions[1] - 1, (workingMatrixDimensions[1]-numberNonHydrogens)-1, -1): 
+        bondLengthMatrixRows += i
+    bondLengthMatrix = np.empty((bondLengthMatrixRows, 2), dtype = object)
+    return bondLengthMatrix, workingMatrixDimensions
+
+
+def testInTripleList(bondMatrixEntry, tripleListEntry): #Sees if a bond can be found in a triplet
+    splitCharacters = re.split('(\d+)', bondMatrixEntry)
+    atom1 = splitCharacters[0] + splitCharacters[1]
+    atom2 = splitCharacters[2] + splitCharacters[3]
+    if atom1 in tripleListEntry and atom2 in tripleListEntry: return True
+    else: return False
+
+def addingSides(tripleList, index, funcMatrix):
+    needDistanceAtoms = []
+    needDistanceAtoms.append(tripleList[index][0])
+    needDistanceAtoms.append(tripleList[index][2])
+    usefulCol = []
+    for i in range(len(needDistanceAtoms)):
+        search = needDistanceAtoms[i]
+        for col in range(len(funcMatrix[0])):
+            if funcMatrix[0, col] == search: #We found the column of one of the side atoms
+                usefulCol.append(col)
+    X1,X2 = funcMatrix[1, usefulCol[0]], funcMatrix[1, usefulCol[1]]
+    Y1,Y2 = funcMatrix[2, usefulCol[0]], funcMatrix[2, usefulCol[1]]
+    Z1,Z2 = funcMatrix[3, usefulCol[0]], funcMatrix[3, usefulCol[1]]
+    bondLength = bondLengthDistance(X1, Y1, Z1, X2, Y2, Z2)
+    key, value = (needDistanceAtoms[0] + needDistanceAtoms[1]), bondLength 
+    return key, value
+
+
+def calculateAngles(bondMatrixRaw, tripleList, funcMatrix): #Function for calculating the angles
+    angleMatrix = np.empty((len(tripleList),2),dtype = object)
+    for i in range(len(tripleList)):
         sides = dict()
-        for j in range(len(BondLengthMatrix)):
-            if (BondLengthMatrix[j,0] == TripleList[i][1] + TripleList[i][0]) or (BondLengthMatrix[j,0] == TripleList[i][0] + TripleList[i][1]):
-                key, value = BondLengthMatrix[j,0],BondLengthMatrix[j,1]
-                sides[key] = value
-            if (BondLengthMatrix[j,0] == TripleList[i][1] + TripleList[i][2]) or (BondLengthMatrix[j,0] == TripleList[i][2] + TripleList[i][1]):
-                key, value = BondLengthMatrix[j,0],BondLengthMatrix[j,1]
-                sides[key] = value
-            if (BondLengthMatrix[j,0] == TripleList[i][0] + TripleList[i][2]) or (BondLengthMatrix[j,0] == TripleList[i][2] + TripleList[i][0]):
-                key, value = BondLengthMatrix[j,0],BondLengthMatrix[j,1]
+        for j in range(len(bondMatrixRaw)): #We use the raw bond matrix because we want all the sides
+            bondMatrixEntry = bondMatrixRaw[j, 0]
+            tripleListEntry = tripleList[i]
+            if testInTripleList(bondMatrixEntry, tripleListEntry):
+                key, value = bondMatrixRaw[j, 0], bondMatrixRaw[j, 1]
                 sides[key] = value
         if len(sides) != 3:
-            NeedDistanceAtoms = []
-            NeedDistanceAtoms.append(TripleList[i][0])
-            NeedDistanceAtoms.append(TripleList[i][2])
-            UsefulCol = []
-            for IND in range(len(NeedDistanceAtoms)):
-                Search = NeedDistanceAtoms[IND]
-                for col in range(len(workingMatrix[0])):
-                    if workingMatrix[0,col] == Search:
-                        UsefulCol.append(col)
-            X1,X2 = workingMatrix[1,UsefulCol[0]], workingMatrix[1,UsefulCol[1]]
-            Y1,Y2 = workingMatrix[2,UsefulCol[0]], workingMatrix[2,UsefulCol[1]]
-            Z1,Z2 = workingMatrix[3,UsefulCol[0]], workingMatrix[3,UsefulCol[1]]
-            BondLength = BondLengthDistance(X1,Y1,Z1,X2,Y2,Z2)
-            key, value = (NeedDistanceAtoms[0] + NeedDistanceAtoms[1]), BondLength*BohrRadius
+            addingSidesResult = addingSides(tripleList, i, funcMatrix)
+            key, value = addingSidesResult[0], addingSidesResult[1]
             sides[key] = value
-        CentralAtom = TripleList[i][1]
-        NonOpposingSides,c = [],None
+        CentralAtom = tripleList[i][1]
+        NonOpposingSides, c = [], None #the variable c represents the hypotenuse in a law of cosines calculation
         for key in sides:
             if CentralAtom not in key:
                 c = sides[key]
@@ -174,30 +132,60 @@ def getAngleAndBondsIterate(matrix, template):
                 NonOpposingSides.append(sides[key])
         a = NonOpposingSides[0]
         b = NonOpposingSides[1]
-        UnconvertedAngle = AngleCalculationbyCosineLaw(a,b,c)
+        UnconvertedAngle = angleCalculationbyCosineLaw(a,b,c)
         if math.isclose(UnconvertedAngle, -1, abs_tol = 1e-2): #Handles the case when the angle is approximately pi radians
             Angle = math.pi
         elif math.isclose(UnconvertedAngle, 1, abs_tol = 1e-2): #Handles the case (if it happens) where the angle is 0 radians
             Angle = 0
         else:
             Angle = math.acos(UnconvertedAngle)
-        AngleMatrix[i,0],AngleMatrix[i,1]  = TripleList[i], Angle
-
-    return [AngleMatrix, BondLengthMatrix]
-
-#print(getAngleAndBondsIterate(flattenedWorkMat, template)) #LINES FOR TESTING
+        angleMatrix[i,0], angleMatrix[i,1]  = tripleList[i], Angle
+    return angleMatrix
 
 
+# =============================================================================
+# TESTING CODE, comment out when not using
+
+#template = ['C1C2', 'C1H1', 'C1H2', 'C1H3', 'C2H4', 'C2H5', 'C2H6']
+#bondLengthMatrix = np.empty((len(template), 2), dtype = object)
+#funcMatrix = flattenedWorkMat.reshape(4, 8)
+#funcMatrix[0, :] = ['C1', 'C2', 'H1', 'H2', 'H3', 'H4', 'H5', 'H6']
+#dimensions = funcMatrix.shape
+#
+#emptyBondMatrix = createEmptyBondMatrix(funcMatrix)[0]
+#addInBondLengthsRaw(emptyBondMatrix, dimensions, funcMatrix)
+#tripleList = [['C1', 'C2', 'H4'], ['C1', 'C2', 'H5'], ['C1', 'C2', 'H6'], ['H4', 'C2', 'H5'], ['H4', 'C2', 'H6'], ['H5', 'C2', 'H6'], ['C2', 'C1', 'H1'], ['C2', 'C1', 'H2'], ['C2', 'C1', 'H3'], ['H1', 'C1', 'H2'], ['H1', 'C1', 'H3'], ['H2', 'C1', 'H3']]
+#print(addInBondValuesBasedOnTemplate(bondLengthMatrix, template, funcMatrix))
+
+# =============================================================================
 
 
+def getAngleAndBondsIterate(matrix, matrices): #Take the matrices object from targetOutputBaseNew.py
+    funcMatrix = np.array(matrix, dtype = object)
+    funcMatrix = funcMatrix.reshape(matrices.numRows, matrices.atomCount)
+    for i in range(len(funcMatrix[0])): 
+        for key in matrices.stringToNumDict:
+            if matrices.stringToNumDict[key] == float(i):
+                funcMatrix[0,i] = key
+    bondLengthMatrixFinal = np.empty((len(matrices.bondLengthTemplate), 2), dtype = object)
+    rawBondMatrxiResult = createEmptyBondMatrix(funcMatrix)
+    bondMatrixRaw, dimensions = rawBondMatrxiResult[0], rawBondMatrxiResult[1]
+    addInBondValuesBasedOnTemplate(bondLengthMatrixFinal, matrices.bondLengthTemplate, funcMatrix)
+    addInBondLengthsRaw(bondMatrixRaw, dimensions, funcMatrix)
+    tripleList = matrices.angleTemplate
+    angleMatrix = calculateAngles(bondMatrixRaw, tripleList, funcMatrix)
+    return angleMatrix, bondLengthMatrixFinal
+    
+    
 
-
-
-
-
-
-
-
-
-
-
+    
+    
+    
+    
+    
+        
+    
+    
+    
+    
+    

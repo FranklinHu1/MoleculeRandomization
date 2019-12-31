@@ -4,8 +4,13 @@ from mendeleev import element
 import numpy as np
 from copy import deepcopy
 import xlwt
+'''
+Early code for extracing molecular data from the qm7 dataset. This was early on
+when the project was in its nascent phases, and we were doing a proof-of-concept
+type thing. No longer necessary for the project.
+'''
 
-fullPath = 'C:\\Users\Frank\Box Sync\College\MoleculeRandomization\Molecules\\'
+fullPath = 'C:\\Users\Frank\Box Sync\College\Research and Additional Folders\MoleculeRandomizationUpdated\Molecules\\'
 #You will want to change the path name for your specific directories
 moleculeName = 'C6N1H11'
 #Change this string for the desired molecule
@@ -126,3 +131,25 @@ def mainFunc(dataSet, moleculeRow):
     return None
 
 mainFunc('qm7.mat',1)
+    
+
+
+
+
+
+
+
+
+
+
+        
+        
+        
+        
+
+        
+
+
+
+
+

@@ -1,5 +1,6 @@
 '''
 code helps visualize the differences between the original molecule (in blue) against the new molecule (in red)
+by plotting their coordinates as 3D line graphs. Currently non-functional, and not necessary for the project
 '''
 from mpl_toolkits.mplot3d import Axes3D
 import matplotlib.pyplot as plt
@@ -96,3 +97,28 @@ def mainFunc():
     return None
 
 mainFunc()
+
+
+        
+
+        
+        
+        
+
+            
+        
+                
+
+                
+                    
+                
+        
+
+
+
+
+
+    
+    
+    
+    

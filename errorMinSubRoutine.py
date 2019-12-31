@@ -1,29 +1,31 @@
-import math
+# -*- coding: utf-8 -*-
+"""
+Created on Wed Feb 13 22:19:42 2019
+
+@author: Frank
+"""
+'''
+Algorithm for optimizing the cartesian coordinates of the atoms in the molecule
+based on constraints for bond angles and bond lengths. Taking the initial bond angles
+and bond lengths, we distort them by adding some random factor. Then, we optimize the 
+cartesian coordinates of the molecule using least squares to get as close to the
+target set of bond lengths and bond angles as possible, using targetOutputIterate as 
+part of the residual calculation function. The resulting "optimized" geometry is 
+pickled into a .p file and is used for running gaussian single point later in the 
+workflow.
+'''
+
 import numpy as np
 from scipy.optimize import least_squares
-import random 
-import xlrd
 from copy import deepcopy
-from targetOutputBase import getAngleAndBondsBase, randomizationOfMatrix, originalMatrix
-from targetOutputIterate import getAngleAndBondsIterate, stringToNumDict
-
-
+import random
+from targetOutputBase import runGetAnglesAndBondsBase
+from targetOutputIterate import getAngleAndBondsIterate
+import os
+import pickle
 
 # =============================================================================
 # Helper Functions and Variables
-def matrixCorrection(matrix, dictionary):
-    workingCopy = deepcopy(matrix)
-    matDimensions = workingCopy.shape
-    if min(matDimensions) != 2:
-        return 'Illegal Matrix Entry'
-    for i in range(len(workingCopy)):  
-        tempList = []
-        for key in dictionary:
-            if key in workingCopy[i,0]:
-               tempList.append(dictionary[key])
-        workingCopy[i,0] = tempList             
-    return workingCopy
-
 def cartesianMatrixCorrection(matrix):
     cartesianMatrixNoString = deepcopy(matrix)
     for i in range(len(cartesianMatrixNoString[0])):
@@ -31,112 +33,78 @@ def cartesianMatrixCorrection(matrix):
     return cartesianMatrixNoString
 
 def matrixStrip(matrix):
-    matrixCopy = deepcopy(matrix)
-    matrixResult = np.empty((1, len(matrixCopy)))
-    for i in range(len(matrixCopy)):
-        matrixResult[0,i] = matrixCopy[i,1]
+    matrixResult = np.empty((1, len(matrix)))
+    for i in range(len(matrix)):
+        matrixResult[0,i] = matrix[i,1]
     return matrixResult
 
+def randomizationOfMatrix(Entry, lowerbound, upperbound):
+    MatrixCopy = deepcopy(Entry)
+    for row in range(len(MatrixCopy)):
+        MatrixCopy[row, 1] += random.uniform(lowerbound, upperbound)
+    return MatrixCopy
 # =============================================================================
     
-#molecule, cutoff = 'Ethane.xlsx','TabulationsofCutoffBondLengths.xlsx'
-#startingOutput = getAngleAndBonds(originalMatrix)
 
-def run(originalMatrix = originalMatrix):
-    if len(originalMatrix) == 2: #Corrects for molecules that only have either x or only x y coordinates
-        multiplier = len(originalMatrix[0])
-        originalMatrix = np.append(originalMatrix,[[0]*multiplier],axis = 0)
-        originalMatrix = np.append(originalMatrix,[[0]*multiplier],axis = 0)
-    elif len(originalMatrix) == 3:
-        multiplier = len(originalMatrix[0])
-        originalMatrix = np.append(originalMatrix,[[0]*multiplier],axis = 0)
-    
-    workMat = cartesianMatrixCorrection(originalMatrix)
-    #print(workMat)
+def runFunction(startingBondMatrix, startingAngleMatrix, matrices, savePath, time):
+    #Could probably move this outside run function to main func, run only once
+    workMat = cartesianMatrixCorrection(matrices.originalMatrix)
     flattenedWorkMat = np.array(workMat.flatten(), dtype = object)
-    x0 = np.array(flattenedWorkMat, dtype = object)
-    #print(flattenedWorkMat)
-    startingOutput = getAngleAndBondsBase(flattenedWorkMat) #This line is great for debugging!!
-    template = startingOutput[2]
+    x0 = flattenedWorkMat
+    targetAngleMatrix = matrixStrip(randomizationOfMatrix(startingAngleMatrix, -0.1745, 0.1745))
+    targetBondMatrix = matrixStrip(randomizationOfMatrix(startingBondMatrix, -0.3, 0.3))
+    targetVector = np.concatenate((targetAngleMatrix, targetBondMatrix), axis = None)
     
-    #currentAngleMatrix, currentBondMatrix = matrixStrip(startingOutput[0]), matrixStrip(startingOutput[1])
-    #currentCartesianMatrix = startingOutput[2]
-    targetAngleMatrix = matrixStrip(randomizationOfMatrix(startingOutput[0], -0.1745, 0.1745)) 
-    targetBondMatrix = matrixStrip(randomizationOfMatrix(startingOutput[1],-0.3, 0.3))
-    targetVector = np.concatenate((targetAngleMatrix, targetBondMatrix), axis = None) 
-    #Ensure that target / current vectors always are 1D of floats, and they have the angle information before the bond information
-    
-    def residualCalc(matrix): #Insert a counter of some sort to differentiate between the first iteration and later ones
-        #In fact, rework the residualCalc functio to get around this dimension error
-        mat = deepcopy(matrix)
-        outPut = getAngleAndBondsIterate(mat, template)
-        rawBondMatrix = outPut[1]
-        tempMatrix = []
-        for pairs in template:
-            for row in range(len(rawBondMatrix)):
-                if pairs == rawBondMatrix[row,0]:
-                    tempMatrix.append(rawBondMatrix[row])
-        tempMatrix = np.array(tempMatrix)
-        currentAngleMatrix, currentBondMatrix = matrixStrip(outPut[0]),matrixStrip(tempMatrix)
+    def residualCalc(matrix): #Calculates the residuals based off the input matrix
+        outPut = getAngleAndBondsIterate(matrix, matrices)
+        outAngle, outBond = outPut[0], outPut[1]
+        currentAngleMatrix, currentBondMatrix = matrixStrip(outAngle), matrixStrip(outBond)
         currentVector = np.concatenate((currentAngleMatrix, currentBondMatrix), axis = None)
         residuals = np.subtract(targetVector, currentVector)
         return residuals
     
+    psol = least_squares(residualCalc, x0, ftol = 1e-3, xtol = 1e-3, gtol = 1e-3)
     
-    psol = least_squares(residualCalc,x0, ftol = 1e-3, xtol = 1e-3, gtol = 1e-3)
-# =============================================================================
-#    solution = psol.x.reshape((4 , len(originalMatrix[0]))) 
-#    solution = np.array(solution, dtype = object)
-#    for i in range(len(solution[0])):
-#        for key in stringToNumDict:
-#            if stringToNumDict[key] == float(i):
-#                solution[0,i] = key
-#    
-#
-#    
-#    beginningAngleMatrix, beginningBondMatrix = matrixStrip(startingOutput[0]).flatten(), matrixStrip(startingOutput[1]).flatten()
-#    beginningVector = np.concatenate((beginningAngleMatrix, beginningBondMatrix), axis = None)   
-# =============================================================================
-# Only uncomment this sections if you want to generate a solution matrix with the new cartesian coordinates for each of the atoms
+    solution = psol.x.reshape(matrices.numRows, matrices.atomCount)
+    solution = np.array(solution, dtype = object)
+    for i in range(len(solution[0])):
+        for key in matrices.stringToNumDict:
+            if matrices.stringToNumDict[key] == float(i):
+                solution[0,i] = key
+    
+    newFilePath = savePath + os.sep + 'resultingGeom' + str(time + 1) + '.p'
+    file_out = open(newFilePath, 'wb')
+    pickle.dump(solution, file_out)
+    file_out.close()
 
-    
-    mat, template = psol.x, template
-    outPut = getAngleAndBondsIterate(mat, template)
-    rawBondMatrix = outPut[1]
-    tempMatrix = []
-    for pairs in template:
-        for row in range(len(rawBondMatrix)):
-            if pairs == rawBondMatrix[row,0]:
-                tempMatrix.append(rawBondMatrix[row])
-    tempMatrix = np.array(tempMatrix)
-    
 # =============================================================================
-#    endingBondMatrix = matrixStrip(tempMatrix).flatten()
-#    endingAngleMatrix = matrixStrip(outPut[0]).flatten()
-#    endingVector = np.concatenate((endingAngleMatrix, endingBondMatrix), axis = None)
+# TESTING CODE, ONLY UNCOMMENT WHEN USING
+#    beginningAngleMatrix, beginningBondMatrix = matrixStrip(startingAngleMatrix).flatten(), matrixStrip(startingBondMatrix).flatten()
+#    beginningVector = np.concatenate((beginningAngleMatrix, beginningBondMatrix), axis = None)
 #    
-#    for i in range(len(beginningVector)):
-#        beginningVector[i] = abs(beginningVector[i])
-#        endingVector[i] = abs(endingVector[i])
-#        targetVector[i] = abs(targetVector[i])
+#    mat = psol.x 
+#    outPut = getAngleAndBondsIterate(mat, matrices)
+#    outAngle, outBond = outPut[0], outPut[1]
+#    endingAngleMatrix = matrixStrip(outAngle).flatten()
+#    endingBondMatrix = matrixStrip(outBond).flatten()
+#    endingVector = np.concatenate((endingAngleMatrix, endingBondMatrix), axis = None)
 #    
 #    beginningResidual = np.subtract(beginningVector, targetVector)
 #    endingResidual = np.subtract(endingVector, targetVector)
-#    print(beginningResidual,'\n', endingResidual)
+#    print('Error at beginning', beginningResidual)
+#    print('Error at the end', endingResidual)
 # =============================================================================
-# Only uncomment this sections if you want to generate a solution matrix with the new cartesian coordinates for each of the atoms
 
 
-    return [tempMatrix]
-
-
-
-
-
+def mainFuncErrorMin(times, path):
+    (startingBondMatrix, startingAngleMatrix, matrices) = runGetAnglesAndBondsBase(path)
+    savePath = os.path.join(path, 'resultGeoms')
+    for i in range(times):
+        runFunction(startingBondMatrix, startingAngleMatrix, matrices, savePath, i)
+    return None
 
 
         
-
 
 
 
